@@ -1,0 +1,4 @@
+[
+    {"code": "ABC123", "expires": "2025-12-31", "used": false},
+    {"code": "XYZ456", "expires": "2025-12-31", "used": false}
+]
