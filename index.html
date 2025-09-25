@@ -86,7 +86,6 @@
         progressBar.style.width = '0%';
         statusText.innerText = "جارٍ رفع الفيديو...";
 
-        // استخدام XMLHttpRequest لشريط تحميل حقيقي
         const xhr = new XMLHttpRequest();
         xhr.open('POST', '/upload', true);
 
@@ -100,7 +99,10 @@
         xhr.onload = function() {
             if (xhr.status === 200) {
                 const result = JSON.parse(xhr.responseText);
-                statusText.innerText = result.message;
+                statusText.innerHTML = result.message;
+                if(result.video_url){
+                    statusText.innerHTML += `<br><a href="${result.video_url}" target="_blank">اضغط هنا لمشاهدة/تحميل الفيديو</a>`;
+                }
             } else {
                 statusText.innerText = 'حدث خطأ أثناء المعالجة';
             }
