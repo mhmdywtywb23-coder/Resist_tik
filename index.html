@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>رفع الفيديو</title>
+</head>
+<body>
+    <h2>أداة معالجة الفيديو</h2>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <label>ادخل الكود:</label><br>
+        <input type="text" id="code" required><br><br>
+        <label>اختر الفيديو:</label><br>
+        <input type="file" id="videoFile" accept="video/*" required><br><br>
+        <button type="submit">رفع ومعالجة الفيديو</button>
+    </form>
+
+    <p id="status"></p>
+    <a id="downloadLink" style="display:none;">تحميل الفيديو</a>
+
+    <script>
+        const form = document.getElementById('uploadForm');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const code = document.getElementById('code').value;
+            const file = document.getElementById('videoFile').files[0];
+            const formData = new FormData();
+            formData.append('code', code);
+            formData.append('video', file);
+
+            document.getElementById('status').innerText = 'جاري المعالجة...';
+
+            const response = await fetch('/upload', { method: 'POST', body: formData });
+            const result = await response.json();
+
+            if(result.success){
+                document.getElementById('status').innerText = 'تمت المعالجة!';
+                const link = document.getElementById('downloadLink');
+                link.href = result.download_url;
+                link.style.display = 'block';
+                link.innerText = 'تحميل الفيديو';
+            } else {
+                document.getElementById('status').innerText = result.message;
+            }
+        });
+    </script>
+</body>
+</html>
