@@ -32,12 +32,11 @@ def check_code(code):
 
 @app.route('/upload', methods=['POST'])
 def upload_video():
-    @app.route('/upload', methods=['POST'])
-def upload():
+    video = request.files.get('video')  
+
     from datetime import datetime
     import json
 
-    # ======= الكود الثاني =======
     with open('codes.json') as f:
         codes = json.load(f)
 
@@ -48,12 +47,9 @@ def upload():
     expires_at = datetime.fromisoformat(codes[code]['expires_at'])
     if datetime.now() > expires_at:
         return {"success": False, "message": "الكود انتهت صلاحيته!"}
-    # ======= نهاية الكود الثاني =======
 
-    # هنا باقي كود رفع الفيديو والمعالجة
+    # باقي كود معالجة الفيديو
 
-
-    # باقي كود رفع الفيديو والمعالجة يستمر هنا
 
     code = request.form.get('code')
     is_valid, message = check_code(code)
