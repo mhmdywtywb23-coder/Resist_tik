@@ -19,7 +19,7 @@ def upload_video():
     if not video:
         return jsonify({"success": False, "message": "لم يتم رفع أي فيديو"})
 
-    # ======= التحقق من الأكواد =======
+    # التحقق من الأكواد
     with open('codes.json') as f:
         codes = json.load(f)
 
@@ -30,13 +30,19 @@ def upload_video():
     expires_at = datetime.fromisoformat(codes[code]['expires_at'])
     if datetime.now() > expires_at:
         return jsonify({"success": False, "message": "الكود انتهت صلاحيته!"})
-    # ======= نهاية التحقق =======
 
-    # حفظ الفيديو
-    filepath = os.path.join(UPLOAD_FOLDER, video.filename)
+    # حفظ الفيديو باسم RESIST مع الامتداد الأصلي
+    ext = os.path.splitext(video.filename)[1]
+    filepath = os.path.join(UPLOAD_FOLDER, f"RESIST{ext}")
     video.save(filepath)
 
-    return jsonify({"success": True, "message": f"تم رفع الفيديو '{video.filename}' بنجاح!"})
+    # رابط الفيديو للعرض أو التحميل
+    video_url = f"/uploads/RESIST{ext}"
+    return jsonify({"success": True, "message": f"تم رفع الفيديو '{video.filename}' بنجاح!", "video_url": video_url})
+
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(UPLOAD_FOLDER, filename)
 
 if __name__ == "__main__":
     app.run(debug=True)
