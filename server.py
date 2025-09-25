@@ -37,7 +37,7 @@ def upload():
     from datetime import datetime
     import json
 
-    # الكود رقم 2 هنا: تحميل الأكواد والتحقق
+    # ======= الكود الثاني =======
     with open('codes.json') as f:
         codes = json.load(f)
 
@@ -48,6 +48,10 @@ def upload():
     expires_at = datetime.fromisoformat(codes[code]['expires_at'])
     if datetime.now() > expires_at:
         return {"success": False, "message": "الكود انتهت صلاحيته!"}
+    # ======= نهاية الكود الثاني =======
+
+    # هنا باقي كود رفع الفيديو والمعالجة
+
 
     # باقي كود رفع الفيديو والمعالجة يستمر هنا
 
