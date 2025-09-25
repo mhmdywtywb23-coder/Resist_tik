@@ -6,6 +6,8 @@ from werkzeug.utils import secure_filename
 from datetime import datetime
 
 app = Flask(__name__)
+app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024 * 500  # يسمح حتى 500MB
+
 UPLOAD_FOLDER = 'uploads'
 PROCESSED_FOLDER = 'processed'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -25,7 +27,7 @@ def check_code(code):
             c['used'] = True
             with open(CODES_FILE, 'w') as f:
                 json.dump(codes, f)
-            return True, "الكود صالح."
+            return True, "الكود صالح نورت موقعي."
     return False, "الكود غير صحيح."
 
 @app.route('/upload', methods=['POST'])
