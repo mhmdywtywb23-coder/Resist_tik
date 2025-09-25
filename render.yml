@@ -1,8 +1,0 @@
-services:
-  - type: web
-    name: resist-tik-pro
-    env: python
-    buildCommand: |
-      pip install -r requirements.txt
-      sudo apt-get update && sudo apt-get install -y ffmpeg
-    startCommand: python server.py
