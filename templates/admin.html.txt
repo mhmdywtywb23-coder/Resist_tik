@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>لوحة التحكم</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>لوحة التحكم للأكواد</h1>
+    <form action="/add_code" method="post">
+        <label>أدخل الكود الجديد:</label>
+        <input type="text" name="new_code" required>
+        <br>
+        <label>تاريخ انتهاء الصلاحية (YYYY-MM-DD HH:MM:SS):</label>
+        <input type="text" name="expires" required>
+        <br>
+        <button type="submit">إضافة الكود</button>
+    </form>
+</body>
+</html>
