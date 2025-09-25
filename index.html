@@ -1,198 +1,38 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RESIST_TIK_pro - أداة معالجة الفيديو</title>
+    <title>RESIST_TIK_PRO</title>
     <style>
         body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(to right, #1e3c72, #2a5298);
-            color: #fff;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .container {
-            background: rgba(0,0,0,0.6);
-            padding: 25px 35px;
-            border-radius: 20px;
-            width: 90%;
-            max-width: 420px;
+            font-family: Arial, sans-serif;
             text-align: center;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            padding: 50px;
+            background-color: #f0f0f0;
         }
         h1 {
-            font-size: 28px;
-            margin-bottom: 10px;
-            color: #00ffea;
-            font-weight: bold;
-            text-shadow: 1px 1px 5px #000;
+            color: #333;
         }
-        h2 {
-            margin-bottom: 20px;
-        }
-        input[type="text"], input[type="file"] {
-            width: 100%;
-            padding: 12px;
+        input, button {
+            padding: 10px;
             margin: 10px 0;
-            border-radius: 10px;
-            border: none;
             font-size: 16px;
         }
-        button {
-            padding: 14px 22px;
-            border: none;
-            border-radius: 10px;
-            background-color: #4CAF50;
-            color: #fff;
-            font-size: 16px;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-        button:hover {
-            background-color: #45a049;
-        }
-        #status {
-            margin-top: 15px;
-            font-weight: bold;
-        }
-        #progress-container {
-            width: 100%;
-            background-color: #ddd;
-            border-radius: 10px;
-            margin-top: 15px;
-            display: none;
-        }
-        #progress-bar {
-            width: 0%;
-            height: 15px;
-            background-color: #4CAF50;
-            border-radius: 10px;
-        }
-        #downloadLink {
-            display: none;
-            margin-top: 15px;
-            color: #00ffea;
-            text-decoration: underline;
+        #statusText {
+            margin-top: 20px;
             font-weight: bold;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>RESIST_TIK</h1>
-        <h2>أداة معالجة الفيديو</h2>
-        <form id="uploadForm" enctype="multipart/form-data">
-            <input type="text" id="code" placeholder="ادخل الكود هنا" required>
-            <input type="file" id="videoFile" accept="video/*" required>
-            <button type="submit">رفع ومعالجة الفيديو</button>
-        </form>
+    <h1>RESIST_TIK</h1>
 
-        <div id="progress-container">
-            <div id="progress-bar"></div>
-        </div>
+    <input type="text" id="code" placeholder="ادخل الكود">
+    <br>
+    <input type="file" id="video">
+    <br>
+    <button id="uploadBtn">معالجة</button>
 
-        <p id="status"></p>
-        <a id="downloadLink"></a>
-    </div>
+    <div id="statusText"></div>
 
     <script>
-        const form = document.getElementById('uploadForm');
-        const progressBar = document.getElementById('progress-bar');
-        const progressContainer = document.getElementById('progress-container');
-        const statusText = document.getElementById('status');
-        const downloadLink = document.getElementById('downloadLink');
-
-        form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const code = document.getElementById('code').value;
-    const file = document.getElementById('videoFile').files[0];
-    const formData = new FormData();
-    formData.append('code', code);
-    formData.append('video', file);
-
-    progressContainer.style.display = 'block';
-    progressBar.style.width = '0%';
-    statusText.innerText = 'جاري المعالجة...';
-
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', '/upload', true);
-
-    // تحديث شريط التحميل حسب رفع الملف
-    xhr.upload.addEventListener('progress', (event) => {
-        if(event.lengthComputable){
-            const percent = Math.round((event.loaded / event.total) * 100);
-            progressBar.style.width = percent + '%';
-        }
-    });
-
-    xhr.onload = function(){
-        if(xhr.status === 200){
-            const result = JSON.parse(xhr.responseText);
-            progressBar.style.width = '100%';
-            if(result.success){
-                statusText.innerText = 'تمت المعالجة!';
-                downloadLink.href = result.download_url;
-                downloadLink.innerText = 'تحميل الفيديو';
-                downloadLink.style.display = 'block';
-            } else {
-                statusText.innerText = result.message;
-                progressContainer.style.display = 'none';
-            }
-        } else {
-            statusText.innerText = 'حدث خطأ أثناء رفع الفيديو.';
-            progressContainer.style.display = 'none';
-        }
-    };
-
-    xhr.send(formData);
-});
-
-            e.preventDefault();
-            const code = document.getElementById('code').value;
-            const file = document.getElementById('videoFile').files[0];
-            const formData = new FormData();
-            formData.append('code', code);
-            formData.append('video', file);
-
-            // إظهار شريط التقدم
-            progressContainer.style.display = 'block';
-            progressBar.style.width = '0%';
-            statusText.innerText = 'جاري المعالجة...';
-
-            // تحديث وهمي لشريط التقدم أثناء انتظار الرد
-            let progress = 0;
-            const interval = setInterval(() => {
-                if(progress < 90) {
-                    progress += 5;
-                    progressBar.style.width = progress + '%';
-                }
-            }, 500);
-
-            try {
-                const response = await fetch('/upload', { method: 'POST', body: formData });
-                const result = await response.json();
-                clearInterval(interval);
-                progressBar.style.width = '100%';
-
-                if(result.success){
-                    statusText.innerText = 'تمت المعالجة!';
-                    downloadLink.href = result.download_url;
-                    downloadLink.innerText = 'تحميل الفيديو';
-                    downloadLink.style.display = 'block';
-                } else {
-                    statusText.innerText = result.message;
-                    progressContainer.style.display = 'none';
-                }
-            } catch(err) {
-                clearInterval(interval);
-                statusText.innerText = 'حدث خطأ أثناء رفع الفيديو.';
-                progressContainer.style.display = 'none';
-            }
-        });
-    </script>
-</body>
-</html>
+    document.getElementById('uploadBtn').addEventListener('click', functi
