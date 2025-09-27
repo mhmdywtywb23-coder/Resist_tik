@@ -1,50 +1,60 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException
-from fastapi.responses import StreamingResponse
-import shutil, os, uuid, asyncio
+from fastapi import FastAPI, File, UploadFile
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+import shutil
+import os
+import subprocess
+import uuid
 
-app = FastAPI(title='Resist_Tik_Pro API')
+app = FastAPI(title="Resist_Tik_Pro API")
 
-UPLOAD_DIR = '/tmp/resist_uploads'
+# ربط واجهة frontend بحيث تفتح مباشرة
+app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
+
+# مجلد التخزين المؤقت
+UPLOAD_DIR = "uploads"
+OUTPUT_DIR = "outputs"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-@app.post('/compress')
-async def compress(file: UploadFile = File(...)):
-    uid = str(uuid.uuid4())
-    in_path = os.path.join(UPLOAD_DIR, f'{uid}_in.mp4')
-    out_path = os.path.join(UPLOAD_DIR, f'{uid}_out.mp4')
+
+@app.post("/compress")
+async def compress_video(file: UploadFile = File(...)):
     try:
-        with open(in_path, 'wb') as f:
-            shutil.copyfileobj(file.file, f)
+        # اسم فريد للملفات
+        input_filename = f"{uuid.uuid4()}_{file.filename}"
+        input_path = os.path.join(UPLOAD_DIR, input_filename)
+
+        output_filename = f"compressed_{uuid.uuid4()}.mp4"
+        output_path = os.path.join(OUTPUT_DIR, output_filename)
+
+        # حفظ الفيديو المرفوع
+        with open(input_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        # أمر الضغط (باستخدام ffmpeg)
+        command = [
+            "ffmpeg",
+            "-i", input_path,
+            "-vcodec", "libx264",
+            "-crf", "28",   # جودة الضغط (كلما قل الرقم = جودة أعلى)
+            "-preset", "fast",
+            output_path
+        ]
+        subprocess.run(command, check=True)
+
+        # حذف الملف الأصلي لتوفير مساحة
+        os.remove(input_path)
+
+        return {"download_url": f"/download/{output_filename}"}
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail='Failed to save upload')
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
-    cmd = [
-        'ffmpeg', '-y', '-i', in_path,
-        '-vf', 'scale=min(1080,iw):-2',
-        '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23',
-        '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart',
-        out_path
-    ]
-    proc = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
-    stdout, stderr = await proc.communicate()
-    if proc.returncode != 0:
-        if os.path.exists(in_path): os.remove(in_path)
-        raise HTTPException(status_code=500, detail='FFmpeg failed')
 
-    def iterfile():
-        with open(out_path, 'rb') as f:
-            while True:
-                chunk = f.read(8192)
-                if not chunk:
-                    break
-                yield chunk
-
-    headers = {'X-File-Name': f'resist_tik_compressed_{uid}.mp4'}
-    # cleanup after creating response (files removed now)
-    try:
-        os.remove(in_path)
-    except: pass
-    try:
-        os.remove(out_path)
-    except: pass
-    return StreamingResponse(iterfile(), media_type='video/mp4', headers=headers)
+@app.get("/download/{filename}")
+async def download_file(filename: str):
+    file_path = os.path.join(OUTPUT_DIR, filename)
+    if os.path.exists(file_path):
+        return FileResponse(file_path, filename=filename)
+    return JSONResponse(status_code=404, content={"error": "File not found"})
