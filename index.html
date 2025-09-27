@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="ar">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Resist_Tik_Pro — Compressor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b0b0c;
+  --panel:#0f1720;
+  --muted:#94a3b8;
+  --accent:#14b8a6;
+  --card:#0f1724;
+  --glass: rgba(255,255,255,0.03);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans Arabic', sans-serif;background:var(--bg);color:#e6eef2;direction:rtl}
+.container{max-width:980px;margin:32px auto;padding:22px}
+.header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+.logo{background:linear-gradient(135deg,var(--accent),#06b6d4);width:56px;height:56px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;color:#011; font-size:18px}
+.title-wrap h1{margin:0;font-size:20px;color:var(--accent)} 
+.title-wrap p{margin:0;color:var(--muted);font-size:14px}
+.card{background:var(--card);border-radius:12px;padding:18px;box-shadow:0 8px 30px rgba(0,0,0,0.6)}
+.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.drop{border:2px dashed rgba(255,255,255,0.06);border-radius:10px;padding:18px;text-align:center;background:var(--glass);cursor:pointer}
+.drop:hover{border-color:rgba(255,255,255,0.12)}
+.btn{background:var(--accent);border:none;padding:10px 14px;border-radius:10px;color:#001;font-weight:600;cursor:pointer}
+.ghost{background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,0.04);padding:9px 12px;border-radius:9px;cursor:pointer}
+.settings{display:none} /* مخفي فقط */
+.progress{height:10px;background:rgba(255,255,255,0.06);border-radius:999px;overflow:hidden;margin-top:12px}
+.progress > i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),#06b6d4)}
+.small{font-size:13px;color:var(--muted)}
+.controls{display:flex;gap:8px;align-items:center;margin-top:10px}
+.right{margin-right:auto}
+.admin-btn{display:none} /* مخفي افتراضياً */
+.footer{margin-top:14px;color:var(--muted);font-size:13px;text-align:center}
+.note{display:none}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="logo">RTP</div>
+    <div class="title-wrap">
+      <h1>Resist_Tik_Pro</h1>
+      <p>@Ds1_RESIST</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div id="drop" class="drop" tabindex="0">
+      <div style="font-weight:600">اضغط لإضافة ملف فيديو</div>
+      <div class="small" style="margin-top:8px">MP4 — 1080p — 60fps</div>
+      <input id="file" type="file" accept="video/*" style="display:none" />
+    </div>
+
+    <div class="settings" id="settings">
+      <!-- الإعدادات مخفية -->
+    </div>
+
+    <div class="controls">
+      <button id="start" class="btn">ابدأ الضغط</button>
+      <a id="download" class="ghost" style="display:none">تحميل</a>
+      <button id="adminBtn" class="ghost admin-btn">لوحة الادمن</button>
+      <div class="right small" id="status">لم يتم اختيار ملف</div>
+    </div>
+
+    <div class="progress" aria-hidden="true"><i id="bar"></i></div>
+  </div>
+
+  <div class="footer">Resist_Tik_Pro</div>
+</div>
+
+<!-- Admin modal -->
+<div id="adminModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;padding:18px">
+  <div style="max-width:520px;margin:auto;background:#081018;padding:18px;border-radius:12px;color:#dfeff3">
+    <h3 style="margin:0 0 8px;color:var(--accent)">لوحة الادمن</h3>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:10px">ادخل كلمة سر الادمن لتوليد الكود</div>
+    <input id="adminPwd" placeholder="كلمة سر الادمن" style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);margin-bottom:10px;background:transparent;color:#fff" />
+    <div style="display:flex;gap:8px">
+      <input id="days" type="number" value="7" style="width:120px;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:#fff" />
+      <button id="gen" class="btn">انشئ كود</button>
+      <button id="export" class="ghost">تصدير الأكواد</button>
+    </div>
+    <pre id="codes" style="height:120px;background:#071017;border-radius:8px;padding:8px;margin-top:10px;overflow:auto;color:var(--muted)"></pre>
+    <div style="text-align:right;margin-top:10px"><button id="closeAdmin" class="ghost">اغلاق</button></div>
+  </div>
+</div>
+
+<script type="module">
+const VISIBILITY_SECRET = 'MYSECRET123';
+const ADMIN_PASSWORD = 'ADMIN2025';
+
+import { createFFmpeg, fetchFile } from 'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.7/dist/ffmpeg.min.mjs';
+
+const fileInput = document.getElementById('file');
+const drop = document.getElementById('drop');
+const startBtn = document.getElementById('start');
+const download = document.getElementById('download');
+const status = document.getElementById('status');
+const bar = document.getElementById('bar');
+const adminBtn = document.getElementById('adminBtn');
+const adminModal = document.getElementById('adminModal');
+const adminPwd = document.getElementById('adminPwd');
+const genBtn = document.getElementById('gen');
+const exportBtn = document.getElementById('export');
+const codesPre = document.getElementById('codes');
+const closeAdmin = document.getElementById('closeAdmin');
+
+function loadCodes(){ return JSON.parse(localStorage.getItem('rt_codes')||'[]'); }
+function saveCodes(list){ localStorage.setItem('rt_codes', JSON.stringify(list)); }
+function loadSubs(){ return JSON.parse(localStorage.getItem('rt_subs')||'[]'); }
+function saveSubs(list){ localStorage.setItem('rt_subs', JSON.stringify(list)); }
+function refreshCodes(){ codesPre.textContent = JSON.stringify(loadCodes(), null, 2); }
+refreshCodes();
+
+function showAdmin(){ adminBtn.style.display='inline-block'; }
+function hideAdmin(){ adminBtn.style.display='none'; }
+function checkVisibility(){ 
+  try{ if(localStorage.getItem('resist_admin_unlocked')==='1'){ showAdmin(); return; } }catch(e){}
+  const key = prompt('أدخل مفتاح الظهور الخاص بالادمن'); 
+  if(key && key === VISIBILITY_SECRET){ try{ localStorage.setItem('resist_admin_unlocked','1'); }catch(e){} showAdmin(); }
+  else hideAdmin();
+}
+window.addEventListener('load', ()=>{ checkVisibility(); });
+
+adminBtn.addEventListener('click', ()=>{ adminModal.style.display='flex'; });
+closeAdmin.addEventListener('click', ()=>{ adminModal.style.display='none'; });
+
+genBtn.addEventListener('click', ()=>{
+  if(adminPwd.value!==ADMIN_PASSWORD){ alert('كلمة سر الادمن خاطئة'); return; }
+  const days = Number(document.getElementById('days').value) || 7;
+  const code = Math.random().toString(36).slice(2,10).toUpperCase();
+  const list = loadCodes(); list.push({ code, days }); saveCodes(list); refreshCodes(); alert('كود مولد: '+code);
+});
+
+exportBtn.addEventListener('click', ()=>{
+  if(adminPwd.value!==ADMIN_PASSWORD){ alert('كلمة سر الادمن خاطئة'); return; }
+  const blob = new Blob([JSON.stringify(loadCodes(), null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'rt_codes.json'; a.click(); URL.revokeObjectURL(url);
+});
+
+drop.addEventListener('click', ()=> fileInput.click());
+drop.addEventListener('dragover', (e)=>{ e.preventDefault(); drop.style.borderColor='rgba(255,255,255,0.16)'; });
+drop.addEventListener('dragleave', ()=>{ drop.style.borderColor='rgba(255,255,255,0.06)'; });
+drop.addEventListener('drop', (e)=>{ e.preventDefault(); drop.style.borderColor='rgba(255,255,255,0.06)'; const f = e.dataTransfer.files[0]; if(f) handleFile(f); });
+
+fileInput.addEventListener('change', ()=>{ const f = fileInput.files[0]; if(f) handleFile(f); });
+
+let currentFile = null;
+function handleFile(f){
+  currentFile = f;
+  status.textContent = `ملف جاهز`;
+  download.style.display='none';
+  bar.style.width = '0%';
+}
+
+const ffmpeg = createFFmpeg({ log: false, corePath: 'https://unpkg.com/@ffmpeg/core@0.12.0/dist/ffmpeg-core.js' });
+let ready = false;
+ffmpeg.setProgress(({ ratio })=>{ bar.style.width = Math.round(ratio*100) + '%'; });
+(async()=>{ status.textContent='تحميل ffmpeg...'; await ffmpeg.load(); ready = true; status.textContent='جاهز للتحويل'; })();
+
+startBtn.addEventListener('click', async ()=>{
+  if(!currentFile) return alert('حط ملف أول');
+  if(!ready) return alert('التحميل بعده ما خلص');
+  const subs = loadSubs(); const now = Date.now();
+  const active = subs.some(s=>s.expireAt > now);
+  if(!active){ if(!confirm('ما عندك اشتراك مفعل — تريد تحاول بدون تفعيل؟')) return; }
+
+  startBtn.disabled = true;
+  status.textContent = 'جاري التحويل...';
+  try{
+    const inName = 'input.mp4';
+    const outName = 'output.mp4';
+    ffmpeg.FS('writeFile', inName, await fetchFile(currentFile));
+    const scaleFilter = 'scale=min(1080,iw):-2';
+    const args = ['-i', inName, '-vf', scaleFilter, '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', outName];
+    await ffmpeg.run(...args);
+    const data = ffmpeg.FS('readFile', outName);
+    const blob = new Blob([data.buffer], { type: 'video/mp4' });
+    const url = URL.createObjectURL(blob);
+    download.href = url; download.style.display='inline-block'; download.textContent = 'تحميل الفيديو'; download.download = 'resist_tik_pro.mp4';
+    status.textContent = 'انتهى التحويل';
+  }catch(e){ alert('فشل التحويل'); status.textContent = 'خطأ'; }
+  finally{ startBtn.disabled=false; bar.style.width='0%'; }
+});
+
+if(!loadSubs().some(s=>s.expireAt > Date.now())){
+  setTimeout(()=>{ if(confirm('ما عندك اشتراك مفعل. عندك كود تفعيل؟')){ const c = prompt('ادخل كود الاشتراك'); if(c){ const codes = loadCodes(); const found = codes.find(x=>x.code===c); if(found){ const expireAt = Date.now() + found.days*24*3600*1000; const subs = loadSubs(); subs.push({ code: found.code, expireAt }); saveSubs(subs); saveCodes(codes.filter(x=>x.code!==found.code)); refreshCodes(); alert('تم التفعيل'); } else alert('كود غير صالح'); } } },800);
+}
+
+window.addEventListener('load', ()=>{ checkVisibility(); });
+</script>
+</body>
+</html>
