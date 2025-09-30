@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: resist-tik-frontend
+    env: static
+    buildCommand: "npm run build"
+    startCommand: "npm run preview -- --port $PORT"
+  - type: web
+    name: resist-tik-backend
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
+  - type: worker
+    name: resist-tik-worker
+    env: docker
+    dockerfilePath: ./worker/Dockerfile
