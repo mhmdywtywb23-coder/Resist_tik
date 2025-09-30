@@ -1,0 +1,31 @@
+:root{
+--bg:#0f1724; --card:#111827; --muted:#9aa4b2;
+--accent:#FF6F61; --accent-2:#6C63FF; --gold:#FFC857; --text:#e6eef8;
+}
+*{box-sizing:border-box}
+body{font-family:system-ui,-apple-system,'Segoe UI',Roboto; background:linear-gradient(180deg,var(--bg),#0b1220); color:var(--text); margin:0; padding:0; direction:rtl}
+.container{max-width:1100px;margin:0 auto;padding:28px}
+.site-header{background:transparent;padding:14px 0}
+.header-grid{display:flex;align-items:center;justify-content:space-between}
+.brand .logo{font-weight:900;font-size:22px;color:var(--gold);letter-spacing:0.6px}
+.brand .tag{font-size:12px;color:var(--muted)}
+.nav a{margin-left:18px;text-decoration:none;color:var(--text);font-weight:600}
+.card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border:1px solid rgba(255,255,255,0.03); border-radius:14px; padding:22px; margin:20px 0; box-shadow: 0 10px 30px rgba(2,6,23,0.6);}
+.hero h1{margin:0 0 6px 0;font-size:30px}
+.muted{color:var(--muted);margin-bottom:12px}
+.file-label{display:flex;align-items:center;justify-content:center;border:2px dashed rgba(255,255,255,0.04);padding:18px;border-radius:12px;text-align:center;cursor:pointer;transition:all .18s ease}
+.file-label:hover{transform:translateY(-4px); border-color: rgba(108,99,255,0.9)}
+.file-label input{display:none}
+.btn{display:inline-block;padding:12px 18px;border-radius:12px;border:0;font-weight:800;cursor:pointer;margin-top:12px;transition:all .18s ease;box-shadow: 0 6px 20px rgba(12,15,30,0.6)}
+.btn.primary{background:linear-gradient(90deg,var(--accent), #ff9b86); color:#fff}
+.btn.secondary{background:linear-gradient(90deg,var(--accent-2), #8f83ff); color:#fff}
+.plans-grid{display:flex;gap:18px;flex-wrap:wrap;margin-top:16px}
+.plan{flex:1;min-width:220px;border-radius:12px;padding:16px;text-align:center;border:1px solid rgba(255,255,255,0.03);background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));transition:transform .18s ease, box-shadow .18s ease}
+.plan:hover{transform:translateY(-6px); box-shadow:0 18px 40px rgba(12,15,30,0.6)}
+.plan.featured{border:1px solid rgba(255,111,97,0.2); box-shadow: 0 18px 48px rgba(255,111,97,0.08);}
+.price{font-weight:900;margin-top:12px;font-size:18px;color:var(--gold)}
+.input, input[type="email"], select{width:100%;padding:12px;margin-top:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.04); background:rgba(255,255,255,0.02); color:var(--text)}
+.result{margin-top:14px;color:var(--muted)}
+.site-footer{padding:22px;text-align:center;color:var(--muted); font-size:13px}
+.uploads table{width:100%;border-collapse:collapse;color:var(--text)}
+.uploads th, .uploads td{border-bottom:1px solid rgba(255,255,255,0.03);padding:10px;text-align:right}
