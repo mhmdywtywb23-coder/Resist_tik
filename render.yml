@@ -1,8 +1,0 @@
-services:
-  - type: web
-    name: Resist_Tik_Pro
-    env: docker
-    dockerfilePath: Dockerfile
-    branch: main
-    region: oregon
-    plan: free
