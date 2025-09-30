@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Admin - Resist_Tik_Pro VIP</title>
+<link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="container header-grid">
+    <div class="brand"><div class="logo">Resist_Tik_Pro — Admin</div></div>
+  </div>
+</header>
+<main class="container">
+  <section class="card">
+    <h2>لوحة الأدمن (VIP)</h2>
+    <p class="muted">مقفولة بكلمة المرور الخاصة: RESIST_ADMIN_1</p>
+    <div id="controls">
+      <h3>توليد كود جديد</h3>
+      <button id="genBasic" class="btn secondary">كود Basic</button>
+      <button id="genPro" class="btn primary">كود Pro</button>
+      <button id="genPre" class="btn secondary">كود Premium</button>
+      <div id="newCode" style="margin-top:12px;color:var(--muted)"></div>
+      <hr/>
+      <h3>قائمة المشتركين</h3>
+      <div id="subs">جارٍ التحميل...</div>
+    </div>
+  </section>
+</main>
+<script>
+async function loadSubs(){
+  const res = await fetch('/api/subscriptions');
+  const data = await res.json();
+  if(!Array.isArray(data)){ document.getElementById('subs').innerText='لا توجد مشتركين'; return; }
+  let html = '<table><tr><th>الايميل</th><th>الخطة</th><th>انتهى في</th></tr>';
+  data.forEach(s=> html += `<tr><td>${s.email}</td><td>${s.plan}</td><td>${s.expiry}</td></tr>`);
+  html += '</table>';
+  document.getElementById('subs').innerHTML = html;
+}
+document.getElementById('genBasic').addEventListener('click', async ()=> generate('Basic'));
+document.getElementById('genPro').addEventListener('click', async ()=> generate('Pro'));
+document.getElementById('genPre').addEventListener('click', async ()=> generate('Premium'));
+
+async function generate(plan){
+  const res = await fetch('/admin/generate-code', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ plan }) });
+  const data = await res.json();
+  if(data.code) document.getElementById('newCode').innerText = 'الكود الجديد: ' + data.code;
+  else document.getElementById('newCode').innerText = 'خطأ في التوليد';
+}
+
+loadSubs();
+</script>
+</body>
+</html>

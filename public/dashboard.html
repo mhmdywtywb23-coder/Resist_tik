@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>لوحة التحكم - Resist_Tik_Pro VIP</title>
+<link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="container header-grid">
+    <div class="brand"><div class="logo">Resist_Tik_Pro</div></div>
+  </div>
+</header>
+<main class="container">
+  <section class="card">
+    <h2>ملفات الرفع</h2>
+    <div class="uploads" id="uploads">جارٍ التحميل...</div>
+  </section>
+  <section class="card">
+    <h2>المشتركون</h2>
+    <div id="subs">جارٍ التحميل...</div>
+  </section>
+</main>
+<script>
+async function loadUploads(){
+  const res = await fetch('/api/uploads');
+  const data = await res.json();
+  if(!Array.isArray(data)){ document.getElementById('uploads').innerText='خطأ'; return; }
+  let html = '<table><tr><th>الملف</th><th>رابط</th></tr>';
+  data.forEach(it=> html += `<tr><td>${it.file}</td><td><a href="${it.url}" target="_blank">${it.url}</a></td></tr>`);
+  html += '</table>';
+  document.getElementById('uploads').innerHTML = html;
+}
+async function loadSubs(){
+  const res = await fetch('/api/subscriptions');
+  const data = await res.json();
+  if(!Array.isArray(data)){ document.getElementById('subs').innerText='خطأ'; return; }
+  let html = '<table><tr><th>الايميل</th><th>الخطة</th><th>انتهى في</th></tr>';
+  data.forEach(s=> html += `<tr><td>${s.email}</td><td>${s.plan}</td><td>${s.expiry}</td></tr>`);
+  html += '</table>';
+  document.getElementById('subs').innerHTML = html;
+}
+loadUploads();
+loadSubs();
+</script>
+</body>
+</html>
