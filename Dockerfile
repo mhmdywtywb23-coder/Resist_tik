@@ -1,19 +1,7 @@
-{
-  "name": "video-processor",
-  "version": "1.0.0",
-  "description": "Video processing app with admin panel",
-  "main": "backend/server.js",
-  "scripts": {
-    "start": "node backend/server.js"
-  },
-  "dependencies": {
-    "express": "^4.18.2",
-    "multer": "1.4.5-lts.2",
-    "cors": "^2.8.5",
-    "body-parser": "^1.20.2",
-    "path": "^0.12.7"
-  },
-  "engines": {
-    "node": ">=16.0.0"
-  }
-}
+FROM node:18
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+EXPOSE 3000
+CMD ["npm", "start"]
