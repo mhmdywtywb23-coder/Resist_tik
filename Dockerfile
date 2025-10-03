@@ -1,21 +1,19 @@
-FROM debian:bullseye-slim
-
-# تثبيت ffmpeg، Node.js و npm
-RUN apt-get update && apt-get install -y \
-    ffmpeg \
-    curl \
-    nodejs \
-    npm \
-    && rm -rf /var/lib/apt/lists/*
-
-# مجلد العمل داخل الحاوية
-WORKDIR /app
-
-# نسخ كل الملفات للمجلد /app
-COPY . .
-
-# تثبيت مكتبات Node.js
-RUN npm install
-
-# أمر التشغيل
-CMD ["npm", "start"]
+{
+  "name": "video-processor",
+  "version": "1.0.0",
+  "description": "Video processing app with admin panel",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "multer": "1.4.5-lts.2",
+    "cors": "^2.8.5",
+    "body-parser": "^1.20.2",
+    "path": "^0.12.7"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
