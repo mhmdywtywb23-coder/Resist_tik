@@ -1,18 +1,21 @@
 FROM debian:bullseye-slim
 
+# تثبيت ffmpeg، Node.js و npm
 RUN apt-get update && apt-get install -y \
     ffmpeg \
-    git \
     curl \
     nodejs \
     npm \
     && rm -rf /var/lib/apt/lists/*
 
+# مجلد العمل داخل الحاوية
 WORKDIR /app
 
+# نسخ كل الملفات للمجلد /app
 COPY . .
 
-# تثبيت جميع مكتبات Node.js بما فيها dotenv
+# تثبيت مكتبات Node.js
 RUN npm install
 
-CMD ["node", "backend/server.js"]
+# أمر التشغيل
+CMD ["npm", "start"]
