@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="utf-8" />
+  <title>لوحة الأدمن - RESIST_TIK_PRO</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #0f1720;
+      color: #e6eef8;
+      margin: 0;
+      padding: 20px;
+    }
+    .wrap {
+      max-width: 900px;
+      margin: 30px auto;
+      background: #0b1220;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 6px 18px rgba(0,0,0,.6);
+    }
+    h1 {
+      color: #00e6b8;
+      margin: 0 0 12px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid rgba(255,255,255,.04);
+      text-align: left;
+    }
+    th { color: #9be6d0 }
+    .btn {
+      padding: 8px 12px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .on { background: #16a34a; color: white }
+    .off { background: #ef4444; color: white }
+    .small { font-size: 13px; color: #bcd8cf }
+    form { display: inline }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>لوحة الأدمن — RESIST_TIK_PRO</h1>
+    <p class="small">أنت الوحيد اللي يدخل هذي الصفحة. هنا تقدر تشوف المستخدمين وتفعل/تعطل الاشتراكات.</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>المعرف</th>
+          <th>اليوزر</th>
+          <th>حالة الاشتراك</th>
+          <th>تحكم</th>
+        </tr>
+      </thead>
+      <tbody id="users">
+        <!-- سيتم توليد الصفوف من السيرفر -->
+      </tbody>
+    </table>
+
+    <p class="small">زر تفعيل/تعطيل يعمل فوراً ويعيد تحميل الصفحة.</p>
+  </div>
+
+  <script>
+    async function loadUsers(){
+      try{
+        const res = await fetch('/admin/users');
+        if(!res.ok) return document.getElementById('users').innerHTML = '<tr><td colspan="4">خطأ في جلب المستخدمين</td></tr>';
+        const users = await res.json();
+        const tbody = document.getElementById('users');
+        tbody.innerHTML = '';
+        users.forEach(u=>{
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${u.id}</td>
+            <td>${u.username}</td>
+            <td>${u.subscribed ? '✅ مفعل' : '❌ غير مفعل'}</td>
+            <td>
+              <form method="POST" action="/admin/toggle-subscription">
+                <input type="hidden" name="userId" value="${u.id}">
+                <input type="hidden" name="status" value="${!u.subscribed}">
+                <button class="btn ${u.subscribed ? 'off' : 'on'}" type="submit">
+                  ${u.subscribed ? 'تعطيل' : 'تفعيل'}
+                </button>
+              </form>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch(e){
+        document.getElementById('users').innerHTML = '<tr><td colspan="4">خطأ بالشبكة</td></tr>';
+      }
+    }
+    loadUsers();
+  </script>
+</body>
+</html>
