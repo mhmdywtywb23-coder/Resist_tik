@@ -1,121 +1,100 @@
-const express = require("express");
-const bodyParser = require("body-parser");
-const cors = require("cors");
-const multer = require("multer");
-const path = require("path");
-const session = require("express-session");
-const { exec } = require("child_process");
+const express = require('express');
+const multer = require('multer');
+const path = require('path');
+const { exec } = require('child_process');
+const session = require('express-session');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(session({ secret: 'secretKey', resave: false, saveUninitialized: true }));
 
-// إعدادات الجلسة
-app.use(session({
-  secret: 'RESIST_SECRET',
-  resave: false,
-  saveUninitialized: false,
-  cookie: { maxAge: 1000 * 60 * 60 * 24 * 30 } // شهر
-}));
+// --- ملف ثابت للأدمن ---
+const ADMIN_USER = 'admin';
+const ADMIN_PASS = 'RESIST_ADMIN_PRO';
 
-// Middleware
-app.use(cors());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+// --- مصفوفة الأكواد ---
+let codes = []; // كل عنصر: { code: "RESIST_123", expires: timestamp }
 
-// ملفات static
-app.use(express.static(path.join(__dirname, "../public")));
-
-// إعداد رفع الملفات
-const upload = multer({ dest: "uploads/" });
-
-// بيانات المستخدمين التجريبية
-let users = [
-  { id: 1, username: "user1", password: "123", subscribed: false },
-  { id: 2, username: "user2", password: "123", subscribed: true }
-];
-
-// الأدمن
-const ADMIN_USER = "admin";
-const ADMIN_PASS = "RESIST_ADMIN_PRO";
-
-// Middleware الأدمن
+// --- middleware للأدمن ---
 function requireAdmin(req, res, next) {
-  if (req.session && req.session.admin) return next();
-  return res.redirect("/login");
+  if (req.session && req.session.adminLoggedIn) return next();
+  return res.redirect('/login');
 }
 
-// Middleware تسجيل دخول المستخدم
-function requireLogin(req, res, next) {
-  if (req.session && req.session.userId) return next();
-  return res.status(401).send("يلزمك تسجيل الدخول");
-}
-
-// Middleware التحقق من الاشتراك
-function requireSubscription(req, res, next) {
-  const user = users.find(u => u.id === req.session.userId);
-  if (user && user.subscribed) return next();
-  return res.status(403).send("اشتراكك غير مفعل. تواصل مع الأدمن");
-}
-
-// صفحة الادمن (login)
-app.get("/login", (req, res) => {
-  res.sendFile(path.join(__dirname, "private/index.html"));
+// --- login page ---
+app.get('/login', (req,res)=>{
+  res.sendFile(path.join(__dirname,'backend/private/login.html'));
 });
 
-// معالجة تسجيل دخول الأدمن
-app.post("/login", (req, res) => {
+app.post('/login', (req,res)=>{
   const { username, password } = req.body;
-  if (username === ADMIN_USER && password === ADMIN_PASS) {
-    req.session.admin = true;
-    return res.redirect("/admin");
+  if(username === ADMIN_USER && password === ADMIN_PASS){
+    req.session.adminLoggedIn = true;
+    return res.redirect('/admin');
   }
-  res.send("بيانات الأدمن غير صحيحة");
+  res.send('يوزر أو باسورد خطأ');
 });
 
-// لوحة الأدمن
-app.get("/admin", requireAdmin, (req, res) => {
-  res.sendFile(path.join(__dirname, "private/index.html"));
+// --- admin page ---
+app.get('/admin', requireAdmin, (req,res)=>{
+  res.sendFile(path.join(__dirname,'backend/private/index.html'));
 });
 
-// تفعيل / تعطيل الاشتراك
-app.post("/admin/toggle-subscription", requireAdmin, (req, res) => {
-  const { userId, status } = req.body;
-  const user = users.find(u => u.id == userId);
-  if (user) user.subscribed = (status === 'true');
-  res.redirect("/admin");
+// --- دالة توليد الكود RESIST_### ---
+function generateRandomCode(lengthDigits = 3) {
+  const num = Math.floor(Math.random() * Math.pow(10, lengthDigits));
+  const padded = String(num).padStart(lengthDigits, '0');
+  return `RESIST_${padded}`;
+}
+
+// --- إنشاء كود جديد ---
+function createCode(days = 1) {
+  const code = generateRandomCode(3);
+  const expires = Date.now() + Number(days) * 24 * 60 * 60 * 1000;
+  codes.push({ code, expires });
+  return { code, expires };
+}
+
+// --- endpoint للأدمن لإنشاء الكود ---
+app.post('/admin/create-code', requireAdmin, (req,res)=>{
+  const days = Number(req.body.days) || 1;
+  const { code, expires } = createCode(days);
+  res.json({ code, expires });
 });
 
-// رفع الملفات (محمي بالاشتراك)
-app.post("/upload", requireLogin, requireSubscription, upload.single("video"), (req, res) => {
-  if (!req.file) return res.status(400).send("لم يتم رفع أي ملف");
+// --- تحقق من الكود ---
+function isCodeValid(inputCode){
+  if(!inputCode) return false;
+  const c = codes.find(x => x.code === inputCode);
+  if(!c) return false;
+  return c.expires > Date.now();
+}
+
+// --- إعداد multer ---
+const upload = multer({ dest: path.join(__dirname, 'uploads/') });
+
+// --- endpoint رفع الفيديو ---
+app.post("/upload", upload.single("video"), (req,res)=>{
+  const userCode = req.body.code;
+  if(!isCodeValid(userCode)) return res.status(403).send("الكود غير صحيح أو انتهت مدته");
 
   const input = req.file.path;
-  const output = `processed_${Date.now()}.mp4`;
-
+  const output = path.join(__dirname,'uploads','processed_' + Date.now() + '.mp4');
   const cmd = `ffmpeg -i ${input} -filter:v "minterpolate='fps=60'" -preset veryfast ${output}`;
-  exec(cmd, (err) => {
-    if (err) return res.status(500).send("حدث خطأ في المعالجة");
+
+  exec(cmd, (err)=>{
+    if(err){
+      console.error(err);
+      return res.status(500).send('حدث خطأ في المعالجة');
+    }
     res.download(output);
   });
 });
 
-// تسجيل دخول المستخدم العادي
-app.post("/user-login", (req, res) => {
-  const { username, password } = req.body;
-  const user = users.find(u => u.username === username && u.password === password);
-  if (user) {
-    req.session.userId = user.id;
-    return res.send("تم تسجيل الدخول بنجاح");
-  }
-  res.status(401).send("بيانات غير صحيحة");
-});
+// --- static folders ---
+app.use(express.static(path.join(__dirname,'public')));
 
-// الصفحة الرئيسية
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "../public/index.html"));
-});
-
-// تشغيل السيرفر
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// --- start server ---
+const PORT = process.env.PORT || 3000;
+app.listen(PORT,()=>console.log(`Server running on port ${PORT}`));
