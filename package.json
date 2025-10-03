@@ -1,13 +1,14 @@
 {
   "name": "resist_tik_pro",
   "version": "1.0.0",
-  "description": "RESIST_TIK_PRO video processor",
+  "description": "RESIST_TIK_PRO video processing server",
   "main": "backend/server.js",
   "scripts": {
     "start": "node backend/server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "multer": "^2.0.0"
+    "multer": "^2.3.0",
+    "cookie-parser": "^1.4.6"
   }
 }
