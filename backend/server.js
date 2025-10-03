@@ -7,15 +7,15 @@ const { processVideo } = require('./processing');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// كلمة السر تجي فقط من Render
-const ADMIN_SECRET = process.env.ADMIN_SECRET;
+// كلمة السر للأدمن مباشرة
+const ADMIN_SECRET = "RESIST_ADMIN_PRO";
 
 app.use(express.static(path.join(__dirname, '../public')));
 
 // إعداد رفع الفيديوهات
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, '/tmp'); // Render عنده مجلد /tmp للملفات المؤقتة
+    cb(null, '/tmp');
   },
   filename: (req, file, cb) => {
     cb(null, Date.now() + path.extname(file.originalname));
@@ -23,7 +23,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// ✅ صفحة الأدمن
+// صفحة الأدمن
 app.get('/admin.html', (req, res) => {
   const pass = req.query.pass;
   if (pass === ADMIN_SECRET) {
@@ -33,7 +33,7 @@ app.get('/admin.html', (req, res) => {
   }
 });
 
-// ✅ API لرفع ومعالجة الفيديو
+// API لرفع ومعالجة الفيديو
 app.post('/upload', upload.single('video'), async (req, res) => {
   try {
     const inputPath = req.file.path;
@@ -43,8 +43,6 @@ app.post('/upload', upload.single('video'), async (req, res) => {
 
     res.download(outputPath, 'processed.mp4', (err) => {
       if (err) console.error('Download error:', err);
-
-      // تنظيف الملفات المؤقتة
       fs.unlinkSync(inputPath);
       fs.unlinkSync(outputPath);
     });
