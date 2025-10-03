@@ -1,143 +1,18 @@
-<!doctype html>
-<html lang="ar" dir="rtl">
+<!DOCTYPE html>
+<html lang="ar">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>لوحة الإدارة - RESIST_TIK_PRO</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <meta charset="UTF-8">
+  <title>لوحة الأدمن</title>
+  <link rel="stylesheet" href="../public/style.css">
 </head>
-<body class="bg-gray-50 text-gray-900">
-  <nav class="bg-white shadow p-4 flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <img src="/assets/logo.png" alt="logo" class="w-10 h-10 rounded" />
-      <h1 class="text-xl font-semibold">لوحة الإدارة — RESIST_TIK_PRO</h1>
-    </div>
-  </nav>
+<body>
+  <h2>لوحة تحكم الأدمن</h2>
+  <p>مرحبًا بك، يمكنك الآن التحكم بالاشتراكات والكود الخاص بالمستخدمين.</p>
 
-  <main class="max-w-5xl mx-auto mt-8 p-6">
-    <section class="bg-white shadow rounded p-6">
-      <h2 class="text-2xl mb-4">تسجيل الدخول كمسؤول</h2>
-
-      <div id="loginBox">
-        <label class="block text-sm">أدخل سر الإدارة (ADMIN SECRET)</label>
-        <input id="adminSecret" class="border p-2 rounded w-full" />
-        <div class="mt-3 flex gap-3">
-          <button id="loginBtn" class="px-4 py-2 bg-indigo-600 text-white rounded">دخول</button>
-          <button id="clearBtn" class="px-4 py-2 bg-gray-200 rounded">مسح</button>
-        </div>
-      </div>
-
-      <div id="panel" class="hidden mt-6">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg">إدارة المفاتيح</h3>
-          <div class="flex gap-2">
-            <input id="days" placeholder="مدة الأيام (مثلاً 30)" class="border p-2 rounded w-36" />
-            <button id="createKey" class="px-3 py-2 bg-green-600 text-white rounded">إنشاء مفتاح جديد</button>
-          </div>
-        </div>
-
-        <div id="keysList" class="space-y-2"></div>
-      </div>
-    </section>
-  </main>
-
-  <script>
-    const loginBtn = document.getElementById('loginBtn');
-    const adminSecretEl = document.getElementById('adminSecret');
-    const panel = document.getElementById('panel');
-    const loginBox = document.getElementById('loginBox');
-    const keysList = document.getElementById('keysList');
-    const createKeyBtn = document.getElementById('createKey');
-
-    function saveSecret(s){
-      localStorage.setItem('resist_admin_secret', s);
-    }
-    function getSecret(){
-      return localStorage.getItem('resist_admin_secret');
-    }
-
-    loginBtn.addEventListener('click', async () => {
-      const s = adminSecretEl.value.trim();
-      if (!s) return alert('أدخل السر');
-      // اختبر صلاحية السر عبر طلب list
-      try {
-        const r = await axios.get('/api/keys/list', { headers: { 'x-admin-secret': s } });
-        if (r.data.ok) {
-          saveSecret(s);
-          loginBox.style.display = 'none';
-          panel.classList.remove('hidden');
-          loadKeys();
-        }
-      } catch (e) {
-        alert('السر غير صحيح');
-      }
-    });
-
-    document.getElementById('clearBtn').addEventListener('click', () => {
-      adminSecretEl.value = '';
-      localStorage.removeItem('resist_admin_secret');
-    });
-
-    async function loadKeys(){
-      const s = getSecret();
-      if (!s) return;
-      try {
-        const r = await axios.get('/api/keys/list', { headers: { 'x-admin-secret': s } });
-        keysList.innerHTML = '';
-        r.data.keys.forEach(k => {
-          const d = new Date(k.expires_at);
-          const div = document.createElement('div');
-          div.className = 'p-3 border rounded flex justify-between items-center';
-          div.innerHTML = `
-            <div>
-              <div class="font-semibold">${k.key} ${k.active ? '' : '(معطّل)'}</div>
-              <div class="text-sm text-gray-600">ينتهي: ${d.toLocaleString()}</div>
-            </div>
-            <div class="flex gap-2">
-              <button data-key="${k.key}" class="disableBtn px-3 py-1 bg-red-600 text-white rounded">معطّل</button>
-            </div>
-          `;
-          keysList.appendChild(div);
-        });
-
-        document.querySelectorAll('.disableBtn').forEach(btn => {
-          btn.addEventListener('click', async (e) => {
-            const key = e.target.dataset.key;
-            if (!confirm('تعطيل المفتاح ' + key + ' ؟')) return;
-            await axios.post('/api/keys/disable', { key }, { headers: { 'x-admin-secret': s } });
-            loadKeys();
-          });
-        });
-      } catch (e) {
-        console.error(e);
-        alert('خطأ أثناء جلب المفاتيح');
-      }
-    }
-
-    createKeyBtn.addEventListener('click', async () => {
-      const s = getSecret();
-      if (!s) return alert('سجّل الدخول أولا');
-      const days = parseInt(document.getElementById('days').value || '30');
-      try {
-        const r = await axios.post('/api/keys/create', { days }, { headers: { 'x-admin-secret': s } });
-        if (r.data.ok) {
-          alert('انشئ المفتاح: ' + r.data.key);
-          loadKeys();
-        }
-      } catch (e) {
-        alert('خطأ أثناء إنشاء المفتاح');
-      }
-    });
-
-    // Auto-login if secret in localStorage
-    window.addEventListener('load', () => {
-      const s = getSecret();
-      if (s) {
-        adminSecretEl.value = s;
-        loginBtn.click();
-      }
-    });
-  </script>
+  <div class="admin-buttons">
+    <button onclick="alert('إنشاء كود جديد')">إنشاء كود جديد</button>
+    <button onclick="alert('عرض المستخدمين')">عرض المستخدمين</button>
+    <button onclick="alert('تعديل مدة الاشتراك')">تعديل مدة الاشتراك</button>
+  </div>
 </body>
 </html>
