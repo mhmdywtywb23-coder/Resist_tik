@@ -1,105 +1,46 @@
 <!DOCTYPE html>
 <html lang="ar">
 <head>
-  <meta charset="utf-8" />
-  <title>لوحة الأدمن - RESIST_TIK_PRO</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <style>
-    body {
-      font-family: Arial, Helvetica, sans-serif;
-      background: #0f1720;
-      color: #e6eef8;
-      margin: 0;
-      padding: 20px;
-    }
-    .wrap {
-      max-width: 900px;
-      margin: 30px auto;
-      background: #0b1220;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 6px 18px rgba(0,0,0,.6);
-    }
-    h1 {
-      color: #00e6b8;
-      margin: 0 0 12px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 12px;
-    }
-    th, td {
-      padding: 10px;
-      border-bottom: 1px solid rgba(255,255,255,.04);
-      text-align: left;
-    }
-    th { color: #9be6d0 }
-    .btn {
-      padding: 8px 12px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-    .on { background: #16a34a; color: white }
-    .off { background: #ef4444; color: white }
-    .small { font-size: 13px; color: #bcd8cf }
-    form { display: inline }
-  </style>
+<meta charset="UTF-8">
+<title>لوحة الأدمن</title>
 </head>
-<body>
-  <div class="wrap">
-    <h1>لوحة الأدمن — RESIST_TIK_PRO</h1>
-    <p class="small">أنت الوحيد اللي يدخل هذي الصفحة. هنا تقدر تشوف المستخدمين وتفعل/تعطل الاشتراكات.</p>
+<body style="background:#0f1c2c; color:#e6eef8; font-family:sans-serif; padding:20px;">
 
-    <table>
-      <thead>
-        <tr>
-          <th>المعرف</th>
-          <th>اليوزر</th>
-          <th>حالة الاشتراك</th>
-          <th>تحكم</th>
-        </tr>
-      </thead>
-      <tbody id="users">
-        <!-- سيتم توليد الصفوف من السيرفر -->
-      </tbody>
-    </table>
+<h2>لوحة الأدمن</h2>
 
-    <p class="small">زر تفعيل/تعطيل يعمل فوراً ويعيد تحميل الصفحة.</p>
+<div style="margin:20px 0; padding:12px; background:#071124; border-radius:8px;">
+  <h3 style="margin:0 0 8px; color:#9be6d0">إنشاء كود جديد للزبون</h3>
+  <label style="font-size:14px; color:#bcd8cf">مدة الكود بالأيام:</label>
+  <input id="codeDays" type="number" min="1" value="1" style="width:80px; padding:6px; margin-left:8px;">
+  <button id="createCodeBtn" style="padding:8px 12px; margin-left:8px; background:#00e6b8; border:none; border-radius:6px; cursor:pointer;">إنشاء كود</button>
+
+  <div id="newCodeBox" style="margin-top:12px; display:none; padding:10px; background:#071824; border-radius:6px; color:#e6eef8;">
+    <div>الكود: <strong id="newCode" style="font-size:18px; color:#00ffb3"></strong></div>
+    <div>ينتهي في: <span id="newCodeExpires" style="color:#bcd8cf"></span></div>
+    <div style="margin-top:8px;"><small>انسخ الكود وارسله للزبون. الكود صالح فقط حتى التاريخ أعلاه.</small></div>
   </div>
+</div>
 
-  <script>
-    async function loadUsers(){
-      try{
-        const res = await fetch('/admin/users');
-        if(!res.ok) return document.getElementById('users').innerHTML = '<tr><td colspan="4">خطأ في جلب المستخدمين</td></tr>';
-        const users = await res.json();
-        const tbody = document.getElementById('users');
-        tbody.innerHTML = '';
-        users.forEach(u=>{
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${u.id}</td>
-            <td>${u.username}</td>
-            <td>${u.subscribed ? '✅ مفعل' : '❌ غير مفعل'}</td>
-            <td>
-              <form method="POST" action="/admin/toggle-subscription">
-                <input type="hidden" name="userId" value="${u.id}">
-                <input type="hidden" name="status" value="${!u.subscribed}">
-                <button class="btn ${u.subscribed ? 'off' : 'on'}" type="submit">
-                  ${u.subscribed ? 'تعطيل' : 'تفعيل'}
-                </button>
-              </form>
-            </td>
-          `;
-          tbody.appendChild(tr);
-        });
-      } catch(e){
-        document.getElementById('users').innerHTML = '<tr><td colspan="4">خطأ بالشبكة</td></tr>';
-      }
-    }
-    loadUsers();
-  </script>
+<script>
+document.getElementById('createCodeBtn').addEventListener('click', async ()=>{
+  const days = Number(document.getElementById('codeDays').value) || 1;
+  try{
+    const res = await fetch('/admin/create-code',{
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:`days=${encodeURIComponent(days)}`
+    });
+    if(!res.ok){ alert('خطأ في إنشاء الكود'); return; }
+    const data = await res.json();
+    document.getElementById('newCode').textContent = data.code;
+    const d = new Date(Number(data.expires));
+    document.getElementById('newCodeExpires').textContent = d.toLocaleString();
+    document.getElementById('newCodeBox').style.display = 'block';
+  } catch(e){
+    alert('خطأ بالشبكة');
+  }
+});
+</script>
+
 </body>
 </html>
