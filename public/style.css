@@ -1,0 +1,71 @@
+/* style.css - تصميم فخم وملون */
+
+body {
+  background: linear-gradient(135deg, #0f1c2c, #071124);
+  color: #e6eef8;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  padding: 20px;
+}
+
+h2 {
+  color: #00e6b8;
+  text-shadow: 1px 1px 4px rgba(0,0,0,0.5);
+  text-align: center;
+}
+
+form {
+  background: rgba(7, 17, 36, 0.95);
+  padding: 25px;
+  border-radius: 12px;
+  max-width: 500px;
+  margin: 30px auto;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+  transition: all 0.3s ease;
+}
+
+form:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+}
+
+label {
+  display: block;
+  margin-top: 12px;
+  font-weight: bold;
+  color: #bcd8cf;
+}
+
+input[type="text"],
+input[type="file"],
+input[type="number"],
+button {
+  width: 100%;
+  padding: 12px;
+  margin-top: 8px;
+  border-radius: 8px;
+  border: none;
+  box-sizing: border-box;
+  font-size: 14px;
+}
+
+input[type="text"]:focus,
+input[type="file"]:focus,
+input[type="number"]:focus,
+button:focus {
+  outline: none;
+  box-shadow: 0 0 8px #00e6b8;
+}
+
+button {
+  background: linear-gradient(90deg, #00e6b8, #00a896);
+  color: #071124;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+button:hover {
+  background: linear-gradient(90deg, #00ffb3, #00c9a7);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,255,179,0.5);
+}
