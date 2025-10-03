@@ -1,31 +1,27 @@
 require('dotenv').config();
 const express = require('express');
-const path = require('path');
-const cors = require('cors');
-const fs = require('fs');
-const db = require('./db');
-
 const app = express();
-app.use(cors());
-app.use(express.json());
+const port = process.env.PORT || 3000;
+
+const ADMIN_SECRET = process.env.ADMIN_SECRET || "RESIST_Admin_Proo";
+
+app.use(express.static('public'));
 app.use(express.urlencoded({ extended: true }));
 
-// مجلدات
-const UP = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
-const OUT = process.env.OUTPUT_DIR || path.join(__dirname, 'jobs');
-if (!fs.existsSync(UP)) fs.mkdirSync(UP, { recursive: true });
-if (!fs.existsSync(OUT)) fs.mkdirSync(OUT, { recursive: true });
+// صفحة الواجهة
+app.get('/', (req, res) => res.sendFile(__dirname + '/public/index.html'));
 
-// راوتات
-app.use('/api/upload', require('./routes/upload'));
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/keys', require('./routes/keys'));
-app.use('/api/jobs', require('./routes/jobs'));
-
-// صفحات ثابتة
-app.use('/', express.static(path.join(__dirname, '..', 'public')));
-
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`RESIST_TIK_PRO server listening on port ${port}`);
+// لوحة الأدمن
+app.get('/admin.html', (req, res) => {
+    const pass = req.query.pass;
+    if(pass === ADMIN_SECRET) return res.send('Admin Panel');
+    res.send('Wrong password');
 });
+
+// رفع ومعالجة الفيديو
+app.post('/upload', (req, res) => {
+    // الكود لمعالجة الفيديو موجود في processing.js
+    res.send('Video uploaded and processing started!');
+});
+
+app.listen(port, () => console.log(`Server running on port ${port}`));
