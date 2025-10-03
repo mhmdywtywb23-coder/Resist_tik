@@ -1,100 +1,72 @@
 const express = require('express');
-const multer = require('multer');
 const path = require('path');
-const { exec } = require('child_process');
-const session = require('express-session');
+const multer = require('multer');
+const ffmpeg = require('fluent-ffmpeg');
+const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser');
 
 const app = express();
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-app.use(session({ secret: 'secretKey', resave: false, saveUninitialized: true }));
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+app.use(cookieParser());
 
-// --- ملف ثابت للأدمن ---
-const ADMIN_USER = 'admin';
-const ADMIN_PASS = 'RESIST_ADMIN_PRO';
+// ملفات الستاتيك
+app.use(express.static(path.join(__dirname, '../public')));
 
-// --- مصفوفة الأكواد ---
-let codes = []; // كل عنصر: { code: "RESIST_123", expires: timestamp }
+// مجلد الأدمن
+const adminFolder = path.join(__dirname, 'private');
 
-// --- middleware للأدمن ---
-function requireAdmin(req, res, next) {
-  if (req.session && req.session.adminLoggedIn) return next();
-  return res.redirect('/login');
-}
+// إعدادات رفع الفيديو
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, 'uploads/'),
+  filename: (req, file, cb) => cb(null, Date.now() + '_' + file.originalname)
+});
+const upload = multer({ storage });
 
-// --- login page ---
-app.get('/login', (req,res)=>{
-  res.sendFile(path.join(__dirname,'backend/private/login.html'));
+// صفحة المستخدم العادي
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
-app.post('/login', (req,res)=>{
+// رفع الفيديو ومعالجته
+app.post('/upload', upload.single('video'), (req, res) => {
+  if (!req.file) return res.status(400).send('لم يتم اختيار أي فيديو');
+
+  const inputPath = req.file.path;
+  const outputPath = 'processed/' + req.file.filename;
+
+  ffmpeg(inputPath)
+    .outputOptions(['-r 30'])
+    .save(outputPath)
+    .on('end', () => res.send('تم المعالجة بنجاح: ' + outputPath))
+    .on('error', err => res.status(500).send('خطأ في المعالجة: ' + err.message));
+});
+
+// صفحة تسجيل دخول الأدمن
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(adminFolder, 'login.html'));
+});
+
+// التحقق من تسجيل الدخول للأدمن
+app.post('/admin/login', (req, res) => {
   const { username, password } = req.body;
-  if(username === ADMIN_USER && password === ADMIN_PASS){
-    req.session.adminLoggedIn = true;
-    return res.redirect('/admin');
+  if (username === 'admin' && password === 'RESIST_ADMIN_PRO') {
+    res.cookie('admin_logged', true, { maxAge: 30*24*60*60*1000 });
+    res.redirect('/admin/dashboard');
+  } else {
+    res.send('اسم المستخدم أو كلمة المرور خاطئة');
   }
-  res.send('يوزر أو باسورد خطأ');
 });
 
-// --- admin page ---
-app.get('/admin', requireAdmin, (req,res)=>{
-  res.sendFile(path.join(__dirname,'backend/private/index.html'));
+// لوحة الأدمن
+app.get('/admin/dashboard', (req, res) => {
+  if (req.cookies.admin_logged) {
+    res.sendFile(path.join(adminFolder, 'admin.html'));
+  } else {
+    res.redirect('/admin');
+  }
 });
 
-// --- دالة توليد الكود RESIST_### ---
-function generateRandomCode(lengthDigits = 3) {
-  const num = Math.floor(Math.random() * Math.pow(10, lengthDigits));
-  const padded = String(num).padStart(lengthDigits, '0');
-  return `RESIST_${padded}`;
-}
-
-// --- إنشاء كود جديد ---
-function createCode(days = 1) {
-  const code = generateRandomCode(3);
-  const expires = Date.now() + Number(days) * 24 * 60 * 60 * 1000;
-  codes.push({ code, expires });
-  return { code, expires };
-}
-
-// --- endpoint للأدمن لإنشاء الكود ---
-app.post('/admin/create-code', requireAdmin, (req,res)=>{
-  const days = Number(req.body.days) || 1;
-  const { code, expires } = createCode(days);
-  res.json({ code, expires });
-});
-
-// --- تحقق من الكود ---
-function isCodeValid(inputCode){
-  if(!inputCode) return false;
-  const c = codes.find(x => x.code === inputCode);
-  if(!c) return false;
-  return c.expires > Date.now();
-}
-
-// --- إعداد multer ---
-const upload = multer({ dest: path.join(__dirname, 'uploads/') });
-
-// --- endpoint رفع الفيديو ---
-app.post("/upload", upload.single("video"), (req,res)=>{
-  const userCode = req.body.code;
-  if(!isCodeValid(userCode)) return res.status(403).send("الكود غير صحيح أو انتهت مدته");
-
-  const input = req.file.path;
-  const output = path.join(__dirname,'uploads','processed_' + Date.now() + '.mp4');
-  const cmd = `ffmpeg -i ${input} -filter:v "minterpolate='fps=60'" -preset veryfast ${output}`;
-
-  exec(cmd, (err)=>{
-    if(err){
-      console.error(err);
-      return res.status(500).send('حدث خطأ في المعالجة');
-    }
-    res.download(output);
-  });
-});
-
-// --- static folders ---
-app.use(express.static(path.join(__dirname,'public')));
-
-// --- start server ---
+// بدء السيرفر
 const PORT = process.env.PORT || 3000;
-app.listen(PORT,()=>console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
