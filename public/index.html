@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>RESIST_TIK_PRO</title>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <script src="https://unpkg.com/dropzone@5/dist/min/dropzone.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/dropzone@5/dist/min/dropzone.min.css" />
+</head>
+<body class="bg-gray-50 text-gray-900">
+  <nav class="bg-white shadow p-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <img src="/assets/logo.png" alt="logo" class="w-10 h-10 rounded" />
+      <h1 class="text-xl font-semibold">RESIST_TIK_PRO</h1>
+    </div>
+    <div class="flex gap-3">
+      <a href="/dashboard.html" class="px-4 py-2 bg-indigo-600 text-white rounded">لوحة الاشتراك</a>
+      <a href="/admin.html" class="px-4 py-2 bg-gray-800 text-white rounded">لوحة إدارة</a>
+    </div>
+  </nav>
+
+  <main class="max-w-4xl mx-auto mt-8 p-6">
+    <section class="bg-white shadow rounded p-6">
+      <h2 class="text-2xl mb-4">حوّل فيديو ببجي إلى تيك توك بجودة وسلاسة</h2>
+      <p class="mb-4 text-sm text-gray-600">الحد الأقصى: 200 ميجابايت. بعد التحويل نزّل الفيديو وارفعه على تيك توك كخاص ثم اجعله عام.</p>
+
+      <form id="uploadForm" class="dropzone" style="min-height:200px; border:dashed 2px #e5e7eb; padding:20px;"></form>
+
+      <div class="mt-4 flex flex-col md:flex-row gap-4">
+        <input id="licenseKey" placeholder="أدخل مفتاح الاشتراك هنا" class="border p-2 rounded flex-1" />
+        <button id="startUpload" class="px-4 py-2 bg-green-600 text-white rounded">ابدأ المعالجة</button>
+      </div>
+
+      <div id="statusBox" class="mt-4 p-3 bg-gray-50 rounded hidden">
+        <div id="statusText" class="text-sm text-gray-700"></div>
+        <a id="downloadLink" class="mt-2 inline-block text-indigo-600 hidden">تحميل الفيديو بعد الانتهاء</a>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    Dropzone.autoDiscover = false;
+    const dz = new Dropzone("#uploadForm", {
+      url: "/api/upload",
+      autoProcessQueue: false,
+      maxFiles: 1,
+      acceptedFiles: "video/*",
+      addRemoveLinks: true
+    });
+
+    document.getElementById('startUpload').addEventListener('click', async () => {
+      const key = document.getElementById('licenseKey').value.trim();
+      if (!key) return alert('ادخل مفتاح الاشتراك أولاً');
+
+      try {
+        const v = await axios.post('/api/auth/validate', { key, device_id: null });
+        if (!v.data.ok) return alert('المفتاح غير صالح');
+      } catch (e) {
+        return alert('المفتاح غير صالح أو انتهى');
+      }
+
+      if (dz.files.length === 0) return alert('اختر ملف لرفعه');
+
+      dz.on('sending', function(file, xhr, formData){
+        formData.append('key', key);
+      });
+
+      dz.on('success', function(file, resp){
+        document.getElementById('statusBox').classList.remove('hidden');
+        document.getElementById('statusText').innerText = 'ملف مرفوع. بدأ المعالجة...';
+        pollJob(resp.jobId);
+      });
+
+      dz.on('error', function(file, err){
+        alert('خطأ أثناء الرفع: ' + err);
+      });
+
+      dz.processQueue();
+    });
+
+    async function pollJob(jobId){
+      const statusBox = document.getElementById('statusBox');
+      const statusText = document.getElementById('statusText');
+      const downloadLink = document.getElementById('downloadLink');
+      downloadLink.classList.add('hidden');
+
+      const poll = setInterval(async () => {
+        try {
+          const r = await axios.get('/api/jobs/' + jobId);
+          const job = r.data.job;
+          statusText.innerText = 'حالة: ' + job.status + (job.message ? ' — ' + job.message : '');
+          if (job.status === 'done') {
+            clearInterval(poll);
+            downloadLink.href = job.download;
+            downloadLink.classList.remove('hidden');
+            downloadLink.innerText = 'حمل الفيديو الناتج';
+            statusText.innerText = 'المعالجة اكتملت!';
+          } else if (job.status === 'failed') {
+            clearInterval(poll);
+            statusText.innerText = 'فشلت المعالجة: ' + job.message;
+          }
+        } catch (e) {
+          // تجاهل أخطاء مؤقتة
+        }
+      }, 3000);
+    }
+  </script>
+</body>
+</html>

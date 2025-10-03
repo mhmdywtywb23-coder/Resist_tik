@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>لوحة الاشتراك - RESIST_TIK_PRO</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+<body class="bg-gray-100 text-gray-900">
+  <nav class="bg-white shadow p-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <img src="/assets/logo.png" alt="logo" class="w-10 h-10 rounded" />
+      <h1 class="text-xl font-semibold">RESIST_TIK_PRO — حالة الاشتراك</h1>
+    </div>
+  </nav>
+
+  <main class="max-w-4xl mx-auto mt-8 p-6">
+    <section class="bg-white shadow rounded p-6">
+      <h2 class="text-xl mb-4">تحقق من مفتاح الاشتراك</h2>
+      <div class="grid grid-cols-1 gap-4">
+        <div>
+          <label class="block text-sm">أدخل مفتاحك</label>
+          <input id="license" class="border p-2 rounded w-full" />
+          <button id="checkBtn" class="mt-2 px-4 py-2 bg-indigo-600 text-white rounded">تحقق</button>
+        </div>
+
+        <div id="info" class="hidden bg-gray-50 p-4 rounded">
+          <p id="infoText"></p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    document.getElementById('checkBtn').addEventListener('click', async () => {
+      const key = document.getElementById('license').value.trim();
+      if (!key) return alert('أدخل المفتاح');
+      try {
+        const r = await axios.post('/api/auth/validate', { key });
+        if (r.data.ok) {
+          document.getElementById('info').classList.remove('hidden');
+          const d = new Date(r.data.expires_at);
+          document.getElementById('infoText').innerText = `المفتاح صالح حتى: ${d.toLocaleString()}`;
+        }
+      } catch (e) {
+        alert('المفتاح غير صالح أو انتهت صلاحيته');
+      }
+    });
+  </script>
+</body>
+</html>
