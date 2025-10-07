@@ -1,72 +1,72 @@
-const express = require('express');
-const path = require('path');
-const multer = require('multer');
-const ffmpeg = require('fluent-ffmpeg');
-const bodyParser = require('body-parser');
-const cookieParser = require('cookie-parser');
+const express = require("express");
+const path = require("path");
+const fs = require("fs");
+const cors = require("cors");
+const multer = require("multer");
+const ffmpeg = require("fluent-ffmpeg");
 
 const app = express();
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
-app.use(cookieParser());
+const PORT = process.env.PORT || 3000;
 
-// ملفات الستاتيك
-app.use(express.static(path.join(__dirname, '../public')));
+// ✅ إعداد المسارات
+const publicPath = path.join(__dirname, "../public");
+const privatePath = path.join(__dirname, "private");
 
-// مجلد الأدمن
-const adminFolder = path.join(__dirname, 'private');
+// ✅ ميدل وير
+app.use(cors());
+app.use(express.json());
+app.use(express.static(publicPath));
 
-// إعدادات رفع الفيديو
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, 'uploads/'),
-  filename: (req, file, cb) => cb(null, Date.now() + '_' + file.originalname)
-});
-const upload = multer({ storage });
-
-// صفحة المستخدم العادي
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public/index.html'));
+// ✅ صفحة الدخول للأدمن
+app.get("/login", (req, res) => {
+  res.sendFile(path.join(privatePath, "login.html"));
 });
 
-// رفع الفيديو ومعالجته
-app.post('/upload', upload.single('video'), (req, res) => {
-  if (!req.file) return res.status(400).send('لم يتم اختيار أي فيديو');
+// ✅ لوحة الأدمن
+app.get("/admin", (req, res) => {
+  res.sendFile(path.join(privatePath, "admin.html"));
+});
 
+// ✅ صفحة عامة (واجهة المستخدم)
+app.get("/", (req, res) => {
+  res.sendFile(path.join(publicPath, "index.html"));
+});
+
+// ✅ إعداد التخزين للفيديوهات المرفوعة
+const upload = multer({ dest: "uploads/" });
+
+// ✅ معالجة الفيديوهات باستخدام ffmpeg
+app.post("/process-video", upload.single("video"), (req, res) => {
   const inputPath = req.file.path;
-  const outputPath = 'processed/' + req.file.filename;
+  const outputPath = `processed/${Date.now()}_processed.mp4`;
+
+  // تأكد أن المجلد موجود
+  if (!fs.existsSync("processed")) fs.mkdirSync("processed");
 
   ffmpeg(inputPath)
-    .outputOptions(['-r 30'])
-    .save(outputPath)
-    .on('end', () => res.send('تم المعالجة بنجاح: ' + outputPath))
-    .on('error', err => res.status(500).send('خطأ في المعالجة: ' + err.message));
+    .videoCodec("libx264")
+    .fps(30)
+    .on("start", (cmd) => console.log("Started:", cmd))
+    .on("progress", (p) => console.log(`Processing: ${p.percent}%`))
+    .on("end", () => {
+      fs.unlinkSync(inputPath); // نحذف الملف الأصلي
+      res.download(outputPath, "processed_video.mp4", () => {
+        fs.unlinkSync(outputPath); // نحذف الناتج بعد التنزيل
+      });
+    })
+    .on("error", (err) => {
+      console.error("❌ ffmpeg error:", err.message);
+      res.status(500).send("Error during video processing.");
+    })
+    .save(outputPath);
 });
 
-// صفحة تسجيل دخول الأدمن
-app.get('/admin', (req, res) => {
-  res.sendFile(path.join(adminFolder, 'login.html'));
+// ✅ مسار احتياطي للأخطاء 404
+app.use((req, res) => {
+  res.status(404).send("الصفحة غير موجودة ⚠️");
 });
 
-// التحقق من تسجيل الدخول للأدمن
-app.post('/admin/login', (req, res) => {
-  const { username, password } = req.body;
-  if (username === 'admin' && password === 'RESIST_ADMIN_PRO') {
-    res.cookie('admin_logged', true, { maxAge: 30*24*60*60*1000 });
-    res.redirect('/admin/dashboard');
-  } else {
-    res.send('اسم المستخدم أو كلمة المرور خاطئة');
-  }
+// ✅ تشغيل السيرفر
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
-
-// لوحة الأدمن
-app.get('/admin/dashboard', (req, res) => {
-  if (req.cookies.admin_logged) {
-    res.sendFile(path.join(adminFolder, 'admin.html'));
-  } else {
-    res.redirect('/admin');
-  }
-});
-
-// بدء السيرفر
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
