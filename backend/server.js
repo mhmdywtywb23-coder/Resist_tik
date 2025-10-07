@@ -9,6 +9,7 @@ const cors = require("cors");
 
 const app = express();
 app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true })); // لدعم الفورم
 app.use(cookieParser());
 app.use(cors());
 app.use(express.static(path.join(__dirname, "../public"))); // ملفات الواجهة
@@ -46,18 +47,25 @@ app.post("/api/check-code", (req, res) => {
   const found = codes.find(c => c.code === code);
 
   if (!found) return res.json({ valid: false });
-
-  if (Date.now() > found.expires) {
-    return res.json({ valid: false, message: "انتهت صلاحية الكود" });
-  }
+  if (Date.now() > found.expires) return res.json({ valid: false, message: "انتهت صلاحية الكود" });
 
   res.json({ valid: true });
 });
 
-// رفع فيديو ومعالجته
+// رفع فيديو والتحقق من الكود قبل المعالجة
 app.post("/upload", upload.single("video"), (req, res) => {
-  if (!req.file) return res.status(400).send("لم يتم رفع الفيديو");
+  const code = req.body.code;
+  if (!code) return res.status(400).send("يجب إدخال كود الاشتراك");
 
+  if (!fs.existsSync(codesFile)) return res.status(400).send("الكود غير موجود");
+
+  const codes = JSON.parse(fs.readFileSync(codesFile));
+  const found = codes.find(c => c.code === code);
+
+  if (!found) return res.status(400).send("الكود غير صحيح");
+  if (Date.now() > found.expires) return res.status(400).send("انتهت صلاحية الكود");
+
+  if (!req.file) return res.status(400).send("لم يتم رفع الفيديو");
   const inputPath = req.file.path;
   const outputPath = path.join(processedDir, req.file.filename + ".mp4");
 
@@ -66,7 +74,7 @@ app.post("/upload", upload.single("video"), (req, res) => {
     .save(outputPath)
     .on("end", () => {
       res.json({ message: "تمت المعالجة بنجاح", file: outputPath });
-      fs.unlinkSync(inputPath); // حذف الفيديو الأصلي بعد المعالجة
+      fs.unlinkSync(inputPath);
     })
     .on("error", (err) => {
       console.error(err);
