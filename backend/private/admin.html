@@ -34,19 +34,26 @@
   </div>
 
   <script>
-    function generateCode() {
+    async function generateCode() {
       const days = document.getElementById('days').value;
       if (!days || days < 1) {
         alert("حدد مدة صحيحة للاشتراك");
         return;
       }
-      // إنشاء كود عشوائي بشكل RESIST_XXX
+
       const random = Math.floor(100 + Math.random() * 900);
       const code = `RESIST_${random}`;
       document.getElementById('newCode').textContent = code + ` (مدة: ${days} يوم)`;
 
-      // هنا يمكن إضافة طلب POST للسيرفر لتخزين الكود إذا أردت لاحقًا
-      console.log("Generated code:", code, "for days:", days);
+      // حفظ الكود في السيرفر
+      const res = await fetch("/api/add-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, days })
+      });
+
+      const data = await res.json();
+      alert(data.message || "تم حفظ الكود");
     }
   </script>
 </body>
