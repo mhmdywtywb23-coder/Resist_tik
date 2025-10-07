@@ -2,17 +2,52 @@
 <html lang="ar">
 <head>
   <meta charset="UTF-8">
-  <title>لوحة الأدمن</title>
-  <link rel="stylesheet" href="../public/style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لوحة الأدمن - RESIST_TIK_PRO</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #1a1a1a; color: #fff; padding: 20px; }
+    h1 { color: #ff4c4c; }
+    button { background: #ff4c4c; color: #fff; border: none; padding: 10px 15px; margin: 5px; cursor: pointer; border-radius: 5px; }
+    input { padding: 5px; margin: 5px; border-radius: 3px; border: 1px solid #ccc; }
+    .container { max-width: 600px; margin: auto; }
+    .section { background: #2a2a2a; padding: 15px; margin-bottom: 20px; border-radius: 8px; }
+  </style>
 </head>
 <body>
-  <h2>لوحة تحكم الأدمن</h2>
-  <p>مرحبًا بك، يمكنك الآن التحكم بالاشتراكات والكود الخاص بالمستخدمين.</p>
+  <div class="container">
+    <h1>لوحة الأدمن - RESIST_TIK_PRO</h1>
 
-  <div class="admin-buttons">
-    <button onclick="alert('إنشاء كود جديد')">إنشاء كود جديد</button>
-    <button onclick="alert('عرض المستخدمين')">عرض المستخدمين</button>
-    <button onclick="alert('تعديل مدة الاشتراك')">تعديل مدة الاشتراك</button>
+    <div class="section">
+      <h2>إنشاء كود اشتراك جديد</h2>
+      <label>مدة الاشتراك (أيام):</label>
+      <input type="number" id="days" placeholder="مثلاً 1" min="1">
+      <button onclick="generateCode()">إنشاء الكود</button>
+      <p>الكود: <span id="newCode">---</span></p>
+    </div>
+
+    <div class="section">
+      <h2>قائمة المستخدمين (تجريبية)</h2>
+      <ul id="userList">
+        <li>لا يوجد مستخدمين حاليًا</li>
+      </ul>
+    </div>
   </div>
+
+  <script>
+    function generateCode() {
+      const days = document.getElementById('days').value;
+      if (!days || days < 1) {
+        alert("حدد مدة صحيحة للاشتراك");
+        return;
+      }
+      // إنشاء كود عشوائي بشكل RESIST_XXX
+      const random = Math.floor(100 + Math.random() * 900);
+      const code = `RESIST_${random}`;
+      document.getElementById('newCode').textContent = code + ` (مدة: ${days} يوم)`;
+
+      // هنا يمكن إضافة طلب POST للسيرفر لتخزين الكود إذا أردت لاحقًا
+      console.log("Generated code:", code, "for days:", days);
+    }
+  </script>
 </body>
 </html>
