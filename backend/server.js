@@ -1,72 +1,90 @@
 const express = require("express");
-const path = require("path");
 const fs = require("fs");
-const cors = require("cors");
+const path = require("path");
+const bodyParser = require("body-parser");
 const multer = require("multer");
 const ffmpeg = require("fluent-ffmpeg");
+const cookieParser = require("cookie-parser");
+const cors = require("cors");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-
-// ✅ إعداد المسارات
-const publicPath = path.join(__dirname, "../public");
-const privatePath = path.join(__dirname, "private");
-
-// ✅ ميدل وير
+app.use(bodyParser.json());
+app.use(cookieParser());
 app.use(cors());
-app.use(express.json());
-app.use(express.static(publicPath));
+app.use(express.static(path.join(__dirname, "../public"))); // ملفات الواجهة
 
-// ✅ صفحة الدخول للأدمن
-app.get("/login", (req, res) => {
-  res.sendFile(path.join(privatePath, "login.html"));
+// إعداد مجلدات التخزين
+const upload = multer({ dest: path.join(__dirname, "../uploads/") });
+const processedDir = path.join(__dirname, "../processed/");
+if (!fs.existsSync(processedDir)) fs.mkdirSync(processedDir);
+
+const codesFile = path.join(__dirname, "private", "codes.json");
+
+// حفظ كود جديد
+app.post("/api/add-code", (req, res) => {
+  const { code, days } = req.body;
+  if (!code || !days) return res.status(400).json({ message: "بيانات ناقصة" });
+
+  const expires = Date.now() + days * 24 * 60 * 60 * 1000;
+  let codes = [];
+
+  if (fs.existsSync(codesFile)) {
+    codes = JSON.parse(fs.readFileSync(codesFile));
+  }
+
+  codes.push({ code, expires });
+  fs.writeFileSync(codesFile, JSON.stringify(codes, null, 2));
+  res.json({ message: "تم حفظ الكود بنجاح" });
 });
 
-// ✅ لوحة الأدمن
-app.get("/admin", (req, res) => {
-  res.sendFile(path.join(privatePath, "admin.html"));
+// التحقق من الكود
+app.post("/api/check-code", (req, res) => {
+  const { code } = req.body;
+  if (!fs.existsSync(codesFile)) return res.json({ valid: false });
+
+  const codes = JSON.parse(fs.readFileSync(codesFile));
+  const found = codes.find(c => c.code === code);
+
+  if (!found) return res.json({ valid: false });
+
+  if (Date.now() > found.expires) {
+    return res.json({ valid: false, message: "انتهت صلاحية الكود" });
+  }
+
+  res.json({ valid: true });
 });
 
-// ✅ صفحة عامة (واجهة المستخدم)
-app.get("/", (req, res) => {
-  res.sendFile(path.join(publicPath, "index.html"));
-});
+// رفع فيديو ومعالجته
+app.post("/upload", upload.single("video"), (req, res) => {
+  if (!req.file) return res.status(400).send("لم يتم رفع الفيديو");
 
-// ✅ إعداد التخزين للفيديوهات المرفوعة
-const upload = multer({ dest: "uploads/" });
-
-// ✅ معالجة الفيديوهات باستخدام ffmpeg
-app.post("/process-video", upload.single("video"), (req, res) => {
   const inputPath = req.file.path;
-  const outputPath = `processed/${Date.now()}_processed.mp4`;
-
-  // تأكد أن المجلد موجود
-  if (!fs.existsSync("processed")) fs.mkdirSync("processed");
+  const outputPath = path.join(processedDir, req.file.filename + ".mp4");
 
   ffmpeg(inputPath)
-    .videoCodec("libx264")
-    .fps(30)
-    .on("start", (cmd) => console.log("Started:", cmd))
-    .on("progress", (p) => console.log(`Processing: ${p.percent}%`))
+    .outputOptions(["-r 30"]) // معالجة على 30fps
+    .save(outputPath)
     .on("end", () => {
-      fs.unlinkSync(inputPath); // نحذف الملف الأصلي
-      res.download(outputPath, "processed_video.mp4", () => {
-        fs.unlinkSync(outputPath); // نحذف الناتج بعد التنزيل
-      });
+      res.json({ message: "تمت المعالجة بنجاح", file: outputPath });
+      fs.unlinkSync(inputPath); // حذف الفيديو الأصلي بعد المعالجة
     })
     .on("error", (err) => {
-      console.error("❌ ffmpeg error:", err.message);
-      res.status(500).send("Error during video processing.");
-    })
-    .save(outputPath);
+      console.error(err);
+      res.status(500).send("حدث خطأ أثناء المعالجة");
+    });
 });
 
-// ✅ مسار احتياطي للأخطاء 404
-app.use((req, res) => {
-  res.status(404).send("الصفحة غير موجودة ⚠️");
+// صفحة الأدمن
+app.get("/admin", (req, res) => {
+  res.sendFile(path.join(__dirname, "private", "admin.html"));
 });
 
-// ✅ تشغيل السيرفر
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+// أي طلب غير موجود يرجع index.html
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../public/index.html"));
+});
+
+// تشغيل السيرفر
+app.listen(process.env.PORT || 3000, () => {
+  console.log("Server running on port", process.env.PORT || 3000);
 });
